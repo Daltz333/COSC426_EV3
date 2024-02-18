@@ -11,8 +11,10 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.view.Menu;
@@ -35,7 +37,7 @@ import java.io.OutputStream;
 
 public class MainActivity extends AppCompatActivity {
     // BT Variables
-    private final String CV_ROBOTNAME = "EV3B";
+    private final String CV_ROBOTNAME = "GGWP";
     private BluetoothAdapter cv_btInterface = null;
     private Set<BluetoothDevice> cv_pairedDevices = null;
     private BluetoothDevice cv_btDevice = null;
@@ -48,25 +50,64 @@ public class MainActivity extends AppCompatActivity {
     TextView cv_label01;
     TextView cv_label02;
 
+    int speed;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Button cv_button = (Button) findViewById(R.id.vv_button);
+        Button backwardButton = findViewById(R.id.backwardButton);
+        Button forwardButton = findViewById(R.id.forwardButton);
+
+        backwardButton.setOnTouchListener(buttonListener(true));
+        forwardButton.setOnTouchListener(buttonListener(false));
+
+        TextView speedLabel = findViewById(R.id.speedLabel);
+        SeekBar speedSlider = findViewById(R.id.speedSlider);
+        speedSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                speed = progress;
+                speedLabel.setText(Integer.toString(progress));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) { }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) { }
+        });
+
+        speedLabel.setText(Integer.toString(speedSlider.getProgress()));
+
         cv_label01 = (TextView) findViewById(R.id.vv_tvOut1);
         cv_label02 = (TextView) findViewById(R.id.vv_tvOut2);
 
         // Need grant permission once per install
         cpf_checkBTPermissions();
-        cv_button.setOnClickListener(
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        //Context ctx =  MainActivity.this;
-                        cpf_EV3PlayTone();
-                    }
-                });
+    }
+
+    private View.OnTouchListener buttonListener(boolean backwards) {
+        return (view, event) -> {
+            switch(event.getAction()) {
+                case MotionEvent.ACTION_UP:
+                    stopMoving();
+                    break;
+                case MotionEvent.ACTION_DOWN:
+                    startMoving(backwards);
+                    break;
+            }
+            return false;
+        };
+    }
+
+    private void startMoving(boolean backwards) {
+        // TODO implement movement
+    }
+
+    private void stopMoving() {
+        // TODO implement movement
     }
 
     @Override
