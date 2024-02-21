@@ -52,6 +52,8 @@ public class MainActivity extends AppCompatActivity {
 
     int speed;
 
+    private boolean isRunning = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -103,11 +105,27 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startMoving(boolean backwards) {
-        // TODO implement movement
+        if (!isRunning) {
+            Thread t = new Thread(() -> {
+                try {
+                    while (isRunning) {
+                        cpf_EV3MoveMotor(backwards ? (int) speed * -1 : (int) speed);
+                        Thread.sleep(10);
+                    }
+
+                    cpf_EV3MoveMotor(0);
+
+                } catch (InterruptedException ex) {}
+            });
+
+            isRunning = true;
+            t.setDaemon(true);
+            t.start();
+        }
     }
 
     private void stopMoving() {
-        // TODO implement movement
+        isRunning = false;
     }
 
     @Override
@@ -129,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
             cpf_connectToEV3(cv_btDevice);
             return true;
         } else if (id == R.id.menu_fourth) {
-            cpf_EV3MoveMotor();
+            cpf_EV3MoveMotor(50);
             return true;
         } else if (id == R.id.menu_fifth) {
             cpf_EV3PlayTone();
@@ -291,7 +309,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Communication Developer Kit Page 27
     // 4.2.2 Start motor B & C forward at power 50 for 3 rotation and braking at destination
-    private void cpf_EV3MoveMotor() {
+    private void cpf_EV3MoveMotor(int power) {
         try {
             byte[] buffer = new byte[20];       // 0x12 command length
 
@@ -306,23 +324,23 @@ public class MainActivity extends AppCompatActivity {
             buffer[5] = 0;
             buffer[6] = 0;
 
-            buffer[7] = (byte) 0xae;
-            buffer[8] = 0;
+            buffer[7] = (byte) 0xad; // OP code
+            buffer[8] = 0; //
 
-            buffer[9] = (byte) 0x06;
+            buffer[9] = (byte) 0x06; // Output
 
             buffer[10] = (byte) 0x81;
-            buffer[11] = (byte) 0x32;
+            buffer[11] = (byte) power;
 
             buffer[12] = 0;
 
             buffer[13] = (byte) 0x82;
             buffer[14] = (byte) 0x84;
-            buffer[15] = (byte) 0x03;
+            buffer[15] = -1;
 
             buffer[16] = (byte) 0x82;
             buffer[17] = (byte) 0xB4;
-            buffer[18] = (byte) 0x00;
+            buffer[18] = (byte) 0x03;
 
             buffer[19] = 1;
 
