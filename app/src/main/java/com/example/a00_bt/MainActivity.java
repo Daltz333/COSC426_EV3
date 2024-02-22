@@ -3,6 +3,8 @@ package com.example.a00_bt;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.annotation.SuppressLint;
+import android.graphics.Color;
 import android.os.Bundle;
 
 import androidx.core.app.ActivityCompat;
@@ -11,9 +13,12 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -47,31 +52,45 @@ public class MainActivity extends AppCompatActivity {
     private InputStream cv_is = null;
     private OutputStream cv_os = null;
 
-    TextView cv_label01;
-    TextView cv_label02;
+    private TextView cv_label01;
+    private TextView cv_label02;
+    private TextView ev3Status;
 
-    int speed;
+    private int primarySpeed = 50;
+    private int auxSpeed = 50;
 
     private boolean isRunning = false;
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Button backwardButton = findViewById(R.id.backwardButton);
-        Button forwardButton = findViewById(R.id.forwardButton);
+        ImageButton backwardButton = findViewById(R.id.reverseButton);
+        ImageButton forwardButton = findViewById(R.id.forwardButton);
+        ImageButton leftButton = findViewById(R.id.leftButton);
+        ImageButton rightButton = findViewById(R.id.rightButton);
 
-        backwardButton.setOnTouchListener(buttonListener(true));
-        forwardButton.setOnTouchListener(buttonListener(false));
+        backwardButton.setOnTouchListener(buttonListener(Direction.Reverse));
+        forwardButton.setOnTouchListener(buttonListener(Direction.Forward));
+        leftButton.setOnTouchListener(buttonListener(Direction.Left));
+        rightButton.setOnTouchListener(buttonListener(Direction.Right));
 
-        TextView speedLabel = findViewById(R.id.speedLabel);
-        SeekBar speedSlider = findViewById(R.id.speedSlider);
+        ImageButton auxBackwardButton = findViewById(R.id.auxReverseButton);
+        ImageButton auxForwardButton = findViewById(R.id.auxForwardButton);
+
+        auxBackwardButton.setOnTouchListener(buttonListener(Direction.Reverse));
+        auxForwardButton.setOnTouchListener(buttonListener(Direction.Forward));
+
+        // Primary motors slider listener
+        TextView speedLabel = findViewById(R.id.powerText);
+        SeekBar speedSlider = findViewById(R.id.powerSlider);
         speedSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                speed = progress;
-                speedLabel.setText(Integer.toString(progress));
+                primarySpeed = progress;
+                speedLabel.setText("Power: " + progress);
             }
 
             @Override
@@ -81,35 +100,69 @@ public class MainActivity extends AppCompatActivity {
             public void onStopTrackingTouch(SeekBar seekBar) { }
         });
 
-        speedLabel.setText(Integer.toString(speedSlider.getProgress()));
+        // Auxillary motor slider listener
+        TextView auxSpeedLabel = findViewById(R.id.auxPowerText);
+        SeekBar auxSpeedSlider = findViewById(R.id.auxSeekBar);
+
+        auxSpeedSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                auxSpeed = progress;
+                auxSpeedLabel.setText("Power: " + progress);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) { }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) { }
+        });
 
         cv_label01 = (TextView) findViewById(R.id.vv_tvOut1);
         cv_label02 = (TextView) findViewById(R.id.vv_tvOut2);
+        ev3Status = (TextView) findViewById(R.id.connectionState);
 
         // Need grant permission once per install
         cpf_checkBTPermissions();
     }
 
-    private View.OnTouchListener buttonListener(boolean backwards) {
+    @SuppressLint("ClickableViewAccessibility")
+    private View.OnTouchListener buttonListener(Direction direction) {
         return (view, event) -> {
             switch(event.getAction()) {
                 case MotionEvent.ACTION_UP:
-                    stopMoving();
+                    driveStartMoving(direction);
                     break;
                 case MotionEvent.ACTION_DOWN:
-                    startMoving(backwards);
+                    driveStopMoving();
                     break;
             }
             return false;
         };
     }
 
-    private void startMoving(boolean backwards) {
+    @SuppressLint("ClickableViewAccessibility")
+    private View.OnTouchListener auxButtonListener(Direction direction) {
+        return (view, event) -> {
+            switch(event.getAction()) {
+                case MotionEvent.ACTION_UP:
+                    auxStartMoving(direction);
+                    break;
+                case MotionEvent.ACTION_DOWN:
+                    auxStopMoving();
+                    break;
+            }
+            return false;
+        };
+    }
+
+    private void driveStartMoving(Direction direction) {
         if (!isRunning) {
             Thread t = new Thread(() -> {
                 try {
                     while (isRunning) {
-                        cpf_EV3MoveMotor(backwards ? (int) speed * -1 : (int) speed);
+                        /** Logic here needs to change for left/right **/
+                        cpf_EV3MoveMotor(direction == Direction.Reverse ? (int) primarySpeed * -1 : (int) primarySpeed);
                         Thread.sleep(10);
                     }
 
@@ -124,8 +177,16 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void stopMoving() {
+    private void driveStopMoving() {
         isRunning = false;
+    }
+
+    private void auxStartMoving(Direction direction) {
+        // TODO
+    }
+
+    private void auxStopMoving() {
+        // TODO
     }
 
     @Override
@@ -279,10 +340,12 @@ public class MainActivity extends AppCompatActivity {
             //// HERE
             cv_is = cv_btSocket.getInputStream();
             cv_os = cv_btSocket.getOutputStream();
-            cv_label02.setText("Connect to " + bd.getName() + " at " + bd.getAddress());
+            ev3Status.setText("Connected to " + bd.getName() + " at " + bd.getAddress());
+            ev3Status.setTextColor(Color.GREEN);
         } catch (Exception e) {
-            cv_label02.setText("Error interacting with remote device [" +
+            ev3Status.setText("Error interacting with remote device [" +
                     e.getMessage() + "]");
+            ev3Status.setTextColor(Color.RED);
         }
     }
 
@@ -348,7 +411,9 @@ public class MainActivity extends AppCompatActivity {
             cv_os.flush();
         }
         catch (Exception e) {
-            cv_label01.setText("Error in MoveForward(" + e.getMessage() + ")");
+            new Handler(Looper.getMainLooper()).post(() -> {
+                cv_label01.setText("Error in MoveForward(" + e.getMessage() + ")");
+            });
         }
     }
 
@@ -388,5 +453,12 @@ public class MainActivity extends AppCompatActivity {
         catch (Exception e) {
             cv_label02.setText("Error in MoveForward(" + e.getMessage() + ")");
         }
+    }
+
+    private enum Direction {
+        Forward,
+        Reverse,
+        Left,
+        Right,
     }
 }

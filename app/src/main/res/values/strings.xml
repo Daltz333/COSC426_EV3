@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">A00-BT</string>
+    <string name="app_name">EV3 Control</string>
     <string name="menu_first">1. Grant Permission</string>
     <string name="menu_second">2. Search BT List</string>
     <string name="menu_third">3. Connect to EV3</string>
@@ -8,4 +8,6 @@
     <string name="menu_sixth">6. Disconnect EV3</string>
     <string name="forward">Forward</string>
     <string name="backward">Backward</string>
+<!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

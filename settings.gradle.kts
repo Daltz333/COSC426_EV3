@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "A00-BT"
+rootProject.name = "EV3 Control"
 include(":app")
