@@ -60,6 +60,12 @@ public class MainActivity extends AppCompatActivity {
     private int auxSpeed = 50;
 
     private boolean isRunning = false;
+    private Direction currentDirection;
+
+    private boolean auxIsRunning = false;
+    private Direction auxDirection;
+
+    private boolean spinTurn = false;
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -80,8 +86,8 @@ public class MainActivity extends AppCompatActivity {
         ImageButton auxBackwardButton = findViewById(R.id.auxReverseButton);
         ImageButton auxForwardButton = findViewById(R.id.auxForwardButton);
 
-        auxBackwardButton.setOnTouchListener(buttonListener(Direction.Reverse));
-        auxForwardButton.setOnTouchListener(buttonListener(Direction.Forward));
+        auxBackwardButton.setOnTouchListener(auxButtonListener(Direction.Reverse));
+        auxForwardButton.setOnTouchListener(auxButtonListener(Direction.Forward));
 
         // Primary motors slider listener
         TextView speedLabel = findViewById(R.id.powerText);
@@ -130,11 +136,14 @@ public class MainActivity extends AppCompatActivity {
     private View.OnTouchListener buttonListener(Direction direction) {
         return (view, event) -> {
             switch(event.getAction()) {
-                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_DOWN:
                     driveStartMoving(direction);
                     break;
-                case MotionEvent.ACTION_DOWN:
-                    driveStopMoving();
+                case MotionEvent.ACTION_UP:
+                    // only stop if this button is actually the one causing movement currently
+                    if(currentDirection == direction) {
+                        driveStopMoving();
+                    }
                     break;
             }
             return false;
@@ -145,10 +154,10 @@ public class MainActivity extends AppCompatActivity {
     private View.OnTouchListener auxButtonListener(Direction direction) {
         return (view, event) -> {
             switch(event.getAction()) {
-                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_DOWN:
                     auxStartMoving(direction);
                     break;
-                case MotionEvent.ACTION_DOWN:
+                case MotionEvent.ACTION_UP:
                     auxStopMoving();
                     break;
             }
@@ -157,16 +166,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void driveStartMoving(Direction direction) {
+        currentDirection = direction;
         if (!isRunning) {
             Thread t = new Thread(() -> {
                 try {
                     while (isRunning) {
-                        /** Logic here needs to change for left/right **/
-                        cpf_EV3MoveMotor(direction == Direction.Reverse ? (int) primarySpeed * -1 : (int) primarySpeed);
+                        int turnMult = spinTurn ? -1 : 0;
+                        // left motor -- move back to turn if left
+                        cpf_EV3MoveMotor(currentDirection == Direction.Reverse || currentDirection == Direction.Left ? primarySpeed * turnMult : primarySpeed, MOTOR_B);
+                        // right motor -- move back to turn if right
+                        cpf_EV3MoveMotor(currentDirection == Direction.Reverse || currentDirection == Direction.Right ? primarySpeed * turnMult : primarySpeed, MOTOR_C);
                         Thread.sleep(10);
                     }
 
-                    cpf_EV3MoveMotor(0);
+                    cpf_EV3MoveMotor(0, MOTOR_B | MOTOR_C);
 
                 } catch (InterruptedException ex) {}
             });
@@ -182,11 +195,29 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void auxStartMoving(Direction direction) {
-        // TODO
+        auxDirection = direction;
+        if (!auxIsRunning) {
+            Thread t = new Thread(() -> {
+                try {
+                    while (auxIsRunning) {
+                        // left motor -- move back to turn if left
+                        cpf_EV3MoveMotor(auxDirection == Direction.Reverse ? auxSpeed * -1 : auxSpeed, MOTOR_A);
+                        Thread.sleep(10);
+                    }
+
+                    cpf_EV3MoveMotor(0, MOTOR_A);
+
+                } catch (InterruptedException ex) {}
+            });
+
+            auxIsRunning = true;
+            t.setDaemon(true);
+            t.start();
+        }
     }
 
     private void auxStopMoving() {
-        // TODO
+        auxIsRunning = false;
     }
 
     @Override
@@ -208,7 +239,7 @@ public class MainActivity extends AppCompatActivity {
             cpf_connectToEV3(cv_btDevice);
             return true;
         } else if (id == R.id.menu_fourth) {
-            cpf_EV3MoveMotor(50);
+            cpf_EV3MoveMotor(50, MOTOR_B | MOTOR_C);
             return true;
         } else if (id == R.id.menu_fifth) {
             cpf_EV3PlayTone();
@@ -370,9 +401,13 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private static final byte MOTOR_A = 0b1;
+    private static final byte MOTOR_B = 0b10;
+    private static final byte MOTOR_C = 0b100;
+
     // Communication Developer Kit Page 27
     // 4.2.2 Start motor B & C forward at power 50 for 3 rotation and braking at destination
-    private void cpf_EV3MoveMotor(int power) {
+    private void cpf_EV3MoveMotor(int power, int motors) {
         try {
             byte[] buffer = new byte[20];       // 0x12 command length
 
@@ -390,7 +425,7 @@ public class MainActivity extends AppCompatActivity {
             buffer[7] = (byte) 0xad; // OP code
             buffer[8] = 0; //
 
-            buffer[9] = (byte) 0x06; // Output
+            buffer[9] = (byte) motors; // Output
 
             buffer[10] = (byte) 0x81;
             buffer[11] = (byte) power;
