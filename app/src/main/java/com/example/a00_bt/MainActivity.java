@@ -20,6 +20,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.SeekBar;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.view.Menu;
@@ -56,6 +57,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView cv_label02;
     private TextView ev3Status;
 
+    private Switch turnSwitch;
+
     private int primarySpeed = 50;
     private int auxSpeed = 50;
 
@@ -78,6 +81,8 @@ public class MainActivity extends AppCompatActivity {
         ImageButton leftButton = findViewById(R.id.leftButton);
         ImageButton rightButton = findViewById(R.id.rightButton);
 
+        turnSwitch = findViewById(R.id.turnSwitch);
+
         backwardButton.setOnTouchListener(buttonListener(Direction.Reverse));
         forwardButton.setOnTouchListener(buttonListener(Direction.Forward));
         leftButton.setOnTouchListener(buttonListener(Direction.Left));
@@ -92,6 +97,11 @@ public class MainActivity extends AppCompatActivity {
         // Primary motors slider listener
         TextView speedLabel = findViewById(R.id.powerText);
         SeekBar speedSlider = findViewById(R.id.powerSlider);
+
+        turnSwitch.setOnCheckedChangeListener((sender, args) -> {
+            spinTurn = args;
+        });
+
         speedSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
