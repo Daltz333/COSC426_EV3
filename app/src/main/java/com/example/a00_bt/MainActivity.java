@@ -181,7 +181,11 @@ public class MainActivity extends AppCompatActivity {
             Thread t = new Thread(() -> {
                 try {
                     while (isRunning) {
-                        int turnMult = spinTurn ? -1 : 0;
+                        int turnMult = -1;
+                        if((currentDirection == Direction.Left || currentDirection == Direction.Right) && !spinTurn) {
+                            turnMult = 0;
+                        }
+
                         // left motor -- move back to turn if left
                         cpf_EV3MoveMotor(currentDirection == Direction.Reverse || currentDirection == Direction.Left ? primarySpeed * turnMult : primarySpeed, MOTOR_B);
                         // right motor -- move back to turn if right
