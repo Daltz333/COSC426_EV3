@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
 
@@ -19,6 +20,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -57,81 +59,29 @@ public class MainActivity extends AppCompatActivity {
     private TextView cv_label02;
     private TextView ev3Status;
 
-    private Switch turnSwitch;
-
-    private int primarySpeed = 50;
-    private int auxSpeed = 50;
-
-    private boolean isRunning = false;
-    private Direction currentDirection;
-
-    private boolean auxIsRunning = false;
-    private Direction auxDirection;
-
-    private boolean spinTurn = false;
-
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        ImageButton backwardButton = findViewById(R.id.reverseButton);
-        ImageButton forwardButton = findViewById(R.id.forwardButton);
-        ImageButton leftButton = findViewById(R.id.leftButton);
-        ImageButton rightButton = findViewById(R.id.rightButton);
+        Button keyboardImg = findViewById(R.id.keyboardImg);
+        Button tuneBtn = findViewById(R.id.tuneBtn);
+        Button soundBtn = findViewById(R.id.soundBtn);
 
-        turnSwitch = findViewById(R.id.turnSwitch);
+        tuneBtn.setOnClickListener(v -> playTune());
+        soundBtn.setOnClickListener(v -> playSound());
 
-        backwardButton.setOnTouchListener(buttonListener(Direction.Reverse));
-        forwardButton.setOnTouchListener(buttonListener(Direction.Forward));
-        leftButton.setOnTouchListener(buttonListener(Direction.Left));
-        rightButton.setOnTouchListener(buttonListener(Direction.Right));
-
-        ImageButton auxBackwardButton = findViewById(R.id.auxReverseButton);
-        ImageButton auxForwardButton = findViewById(R.id.auxForwardButton);
-
-        auxBackwardButton.setOnTouchListener(auxButtonListener(Direction.Reverse));
-        auxForwardButton.setOnTouchListener(auxButtonListener(Direction.Forward));
-
-        // Primary motors slider listener
-        TextView speedLabel = findViewById(R.id.powerText);
-        SeekBar speedSlider = findViewById(R.id.powerSlider);
-
-        turnSwitch.setOnCheckedChangeListener((sender, args) -> {
-            spinTurn = args;
-        });
-
-        speedSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                primarySpeed = progress;
-                speedLabel.setText("Power: " + progress);
+        keyboardImg.setOnTouchListener((view, event) -> {
+            if(event.getAction() == MotionEvent.ACTION_DOWN) {
+                float normX = (event.getX() - view.getX()) / view.getWidth();
+                float normY = (event.getY() - view.getY()) / view.getHeight();
+                int note = noteFromPosition(normX, normY);
+                if(note != -1) {
+                    playNote(note);
+                }
             }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) { }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) { }
-        });
-
-        // Auxillary motor slider listener
-        TextView auxSpeedLabel = findViewById(R.id.auxPowerText);
-        SeekBar auxSpeedSlider = findViewById(R.id.auxSeekBar);
-
-        auxSpeedSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                auxSpeed = progress;
-                auxSpeedLabel.setText("Power: " + progress);
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) { }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) { }
+            return false;
         });
 
         cv_label01 = (TextView) findViewById(R.id.vv_tvOut1);
@@ -142,96 +92,59 @@ public class MainActivity extends AppCompatActivity {
         cpf_checkBTPermissions();
     }
 
-    @SuppressLint("ClickableViewAccessibility")
-    private View.OnTouchListener buttonListener(Direction direction) {
-        return (view, event) -> {
-            switch(event.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                    driveStartMoving(direction);
-                    break;
-                case MotionEvent.ACTION_UP:
-                    // only stop if this button is actually the one causing movement currently
-                    if(currentDirection == direction) {
-                        driveStopMoving();
-                    }
-                    break;
-            }
-            return false;
-        };
+    private void playSound() {
+        // todo: ev3 code
     }
 
-    @SuppressLint("ClickableViewAccessibility")
-    private View.OnTouchListener auxButtonListener(Direction direction) {
-        return (view, event) -> {
-            switch(event.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                    auxStartMoving(direction);
-                    break;
-                case MotionEvent.ACTION_UP:
-                    auxStopMoving();
-                    break;
-            }
-            return false;
-        };
+    private void playTune() {
+        // todo: ev3 code
     }
 
-    private void driveStartMoving(Direction direction) {
-        currentDirection = direction;
-        if (!isRunning) {
-            Thread t = new Thread(() -> {
-                try {
-                    while (isRunning) {
-                        int turnMult = -1;
-                        if((currentDirection == Direction.Left || currentDirection == Direction.Right) && !spinTurn) {
-                            turnMult = 0;
-                        }
+    // Notes represented in half-steps above the C the keyboard starts on.
+    private void playNote(int note) {
+        // todo: ev3 code
+        System.out.println(note);
+    }
 
-                        // left motor -- move back to turn if left
-                        cpf_EV3MoveMotor(currentDirection == Direction.Reverse || currentDirection == Direction.Left ? primarySpeed * turnMult : primarySpeed, MOTOR_B);
-                        // right motor -- move back to turn if right
-                        cpf_EV3MoveMotor(currentDirection == Direction.Reverse || currentDirection == Direction.Right ? primarySpeed * turnMult : primarySpeed, MOTOR_C);
-                        Thread.sleep(10);
-                    }
+    private static final int[] BLACK_NOTES = {1, 3, -1, 6, 8, 10, -1, 13, 15, -1, 18, 20, 22, -1, 25, 27, -1, 30, 32, 34, -1};
+    private static final int[] WHITE_NOTES = {0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 23, 24, 26, 28, 29, 31, 33, 35};
+    private static final int NUM_KEYS = 21;
 
-                    cpf_EV3MoveMotor(0, MOTOR_B | MOTOR_C);
+    private static final float BLACK_KEY_BOTTOM = 115f / 181f;
+    private static final float KEY_SIZE = 37f / 778f;
+    private static final float BLACK_KEY_SIZE = 27f / 778f;
+    private static final float BLACK_KEY_OFFSET = 24f / 778f;
+    private int noteFromPosition(float normX, float normY) {
+        if(normY < BLACK_KEY_BOTTOM) {
+            int blackKey = checkBlackKey(normX);
+            if(blackKey != -1) {
+                return blackKey;
+            }
+        }
 
-                } catch (InterruptedException ex) {}
-            });
-
-            isRunning = true;
-            t.setDaemon(true);
-            t.start();
+        int keyIdx = (int) (normX / KEY_SIZE);
+        if(keyIdx < NUM_KEYS) {
+            return WHITE_NOTES[keyIdx];
+        } else {
+            return -1;
         }
     }
 
-    private void driveStopMoving() {
-        isRunning = false;
-    }
-
-    private void auxStartMoving(Direction direction) {
-        auxDirection = direction;
-        if (!auxIsRunning) {
-            Thread t = new Thread(() -> {
-                try {
-                    while (auxIsRunning) {
-                        // left motor -- move back to turn if left
-                        cpf_EV3MoveMotor(auxDirection == Direction.Reverse ? auxSpeed * -1 : auxSpeed, MOTOR_A);
-                        Thread.sleep(10);
-                    }
-
-                    cpf_EV3MoveMotor(0, MOTOR_A);
-
-                } catch (InterruptedException ex) {}
-            });
-
-            auxIsRunning = true;
-            t.setDaemon(true);
-            t.start();
+    private int checkBlackKey(float normX) {
+        normX -= BLACK_KEY_OFFSET;
+        if(normX >= 0 && normX % KEY_SIZE <= BLACK_KEY_SIZE) {
+            // Make a key index
+            int keyIdx = (int) (normX / KEY_SIZE);
+            // not every key has a corresponding black key
+            if(hasBlackKey(keyIdx)) {
+                return BLACK_NOTES[keyIdx];
+            }
         }
+        return -1;
     }
 
-    private void auxStopMoving() {
-        auxIsRunning = false;
+    private boolean hasBlackKey(int keyIdx) {
+        return keyIdx < NUM_KEYS && BLACK_NOTES[keyIdx] != -1;
     }
 
     @Override
@@ -502,12 +415,5 @@ public class MainActivity extends AppCompatActivity {
         catch (Exception e) {
             cv_label02.setText("Error in MoveForward(" + e.getMessage() + ")");
         }
-    }
-
-    private enum Direction {
-        Forward,
-        Reverse,
-        Left,
-        Right,
     }
 }

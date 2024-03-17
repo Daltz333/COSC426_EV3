@@ -19,148 +19,16 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <ImageButton
-        android:id="@+id/forwardButton"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:layout_marginTop="30dp"
-        android:adjustViewBounds="false"
-        android:background="@color/obviousbutton"
-        android:cropToPadding="false"
-        android:scaleType="centerInside"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/connectionState"
-        app:srcCompat="@drawable/arrow_up" />
-
-    <ImageButton
-        android:id="@+id/reverseButton"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:layout_marginTop="20dp"
-        android:background="@color/obviousbutton"
-        android:scaleType="centerInside"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/forwardButton"
-        app:srcCompat="@drawable/arrow_down" />
-
-    <ImageButton
-        android:id="@+id/leftButton"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:layout_marginTop="20dp"
-        android:layout_marginEnd="20dp"
-        android:background="@color/obviousbutton"
-        android:scaleType="centerInside"
-        app:layout_constraintEnd_toStartOf="@+id/reverseButton"
-        app:layout_constraintTop_toBottomOf="@+id/forwardButton"
-        app:srcCompat="@drawable/arrow_left" />
-
-    <ImageButton
-        android:id="@+id/rightButton"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="20dp"
-        android:background="@color/obviousbutton"
-        android:scaleType="centerInside"
-        app:layout_constraintStart_toEndOf="@+id/reverseButton"
-        app:layout_constraintTop_toBottomOf="@+id/forwardButton"
-        app:srcCompat="@drawable/arrow_right" />
-
-    <TextView
-        android:id="@+id/powerText"
-        android:layout_width="wrap_content"
-        android:layout_height="30dp"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="25dp"
-        android:gravity="center"
-        android:text="Power: 50"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/reverseButton" />
-
-    <SeekBar
-        android:id="@+id/powerSlider"
-        android:layout_width="0dp"
-        android:layout_height="30dp"
-        android:layout_marginTop="25dp"
-        android:layout_marginEnd="20dp"
-        android:max="100"
-        android:progress="50"
-        android:scaleY="3"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/powerText"
-        app:layout_constraintTop_toBottomOf="@+id/reverseButton" />
-
-    <LinearLayout
-        android:id="@+id/linearLayout"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="25dp"
-        android:orientation="horizontal"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/powerSlider">
-
-        <ImageButton
-            android:id="@+id/auxForwardButton"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
-            android:layout_weight="1"
-            android:background="@color/obviousbutton"
-            android:scaleType="centerInside"
-            android:src="@drawable/arrow_up" />
-
-        <Space
-            android:layout_width="20dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1" />
-
-        <ImageButton
-            android:id="@+id/auxReverseButton"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
-            android:layout_weight="1"
-            android:background="@color/obviousbutton"
-            android:scaleType="centerInside"
-            android:src="@drawable/arrow_down" />
-    </LinearLayout>
-
-    <TextView
-        android:id="@+id/auxPowerText"
-        android:layout_width="wrap_content"
-        android:layout_height="30dp"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="25dp"
-        android:gravity="center"
-        android:text="Power: 50"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/linearLayout" />
-
-    <SeekBar
-        android:id="@+id/auxSeekBar"
-        android:layout_width="0dp"
-        android:layout_height="30dp"
-        android:layout_marginTop="25dp"
-        android:layout_marginEnd="20dp"
-        android:max="100"
-        android:progress="50"
-        android:scaleY="3"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/auxPowerText"
-        app:layout_constraintTop_toBottomOf="@+id/linearLayout" />
-
     <TextView
         android:id="@+id/vv_tvOut1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="25dp"
+        android:layout_marginTop="10dp"
         android:text="DEBUG1"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/auxSeekBar" />
+        app:layout_constraintTop_toBottomOf="@+id/connectionState" />
 
     <TextView
         android:id="@+id/vv_tvOut2"
@@ -172,14 +40,37 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/vv_tvOut1" />
 
-    <Switch
-        android:id="@+id/turnSwitch"
+    <Button
+        android:id="@+id/keyboardImg"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/piano_keys"
+        android:backgroundTint="@color/keyboard_img"
+        android:backgroundTintMode="multiply"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintDimensionRatio="w,181:778"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/soundBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Turn"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/connectionState"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="16dp"
+        android:text="Sound"
+        app:layout_constraintBottom_toTopOf="@+id/keyboardImg"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/tuneBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:text="Tune"
+        app:layout_constraintBottom_toTopOf="@+id/keyboardImg"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
