@@ -396,10 +396,10 @@ public class MainActivity extends AppCompatActivity {
             buffer[6] = 0;
 
             buffer[7] = (byte) 0x94;
-            buffer[8] = 1;
+            buffer[8] = 1; // NOT pitch
 
             buffer[9] = (byte) 0x81;
-            buffer[10] = (byte) 0x02;
+            buffer[10] = (byte) 0x02; // volume
 
             buffer[11] = (byte) 0x82;
             buffer[12] = (byte) 0xe8;
