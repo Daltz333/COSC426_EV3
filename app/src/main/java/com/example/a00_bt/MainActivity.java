@@ -32,6 +32,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 
+import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
@@ -101,9 +102,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Notes represented in half-steps above the C the keyboard starts on.
+    // int note are in ranges
     private void playNote(int note) {
-        // todo: ev3 code
-        System.out.println(note);
+        // remaps note int to frequency
+        int frequency = getRemapValue(note, WHITE_NOTES[0], WHITE_NOTES[WHITE_NOTES.length - 1], 250, 5000);
+        cpf_EV3PlayTone(frequency);
     }
 
     private static final int[] BLACK_NOTES = {1, 3, -1, 6, 8, 10, -1, 13, 15, -1, 18, 20, 22, -1, 25, 27, -1, 30, 32, 34, -1};
@@ -169,7 +172,7 @@ public class MainActivity extends AppCompatActivity {
             cpf_EV3MoveMotor(50, MOTOR_B | MOTOR_C);
             return true;
         } else if (id == R.id.menu_fifth) {
-            cpf_EV3PlayTone();
+            cpf_EV3PlayTone(1000);
             return true;
         } else if (id == R.id.menu_sixth) {
             cpf_disconnFromEV3(cv_btDevice);
@@ -380,8 +383,24 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // 4.2.5 Play a 1Kz tone at level 2 for 1 sec.
-    private void cpf_EV3PlayTone() {
+    private void cpf_EV3PlayTone(int frequency) {
+
         try {
+            byte[] freqBuffer = ByteBuffer.allocate(10).putInt(frequency).array();
+            byte[] trimmedBuffer = new byte[2];
+
+            int trimmedBufferIndex = 0;
+            for (int i = 0; i < freqBuffer.length; i++) {
+                byte b = freqBuffer[i];
+                if (b != 0) {
+                    trimmedBuffer[trimmedBufferIndex] = b;
+                    trimmedBufferIndex++;
+                }
+            }
+
+            byte first = trimmedBuffer[0];
+            byte second = trimmedBuffer[1];
+
             byte[] buffer = new byte[17];       // 0x0f command length
 
             buffer[0] = (byte) (17-2);
@@ -395,19 +414,20 @@ public class MainActivity extends AppCompatActivity {
             buffer[5] = 0;
             buffer[6] = 0;
 
-            buffer[7] = (byte) 0x94;
-            buffer[8] = 1; // NOT pitch
+            buffer[7] = (byte) 0x94; // OPCODE (sound pg 59)
+            buffer[8] = (byte) 0x01; // COMMAND, 0x00 = cancel, 0x01 = tone, 0x02 = play, 0x03 = repeat
+
 
             buffer[9] = (byte) 0x81;
-            buffer[10] = (byte) 0x02; // volume
+            buffer[10] = (byte) 0x05; // VOLUME?
 
             buffer[11] = (byte) 0x82;
-            buffer[12] = (byte) 0xe8;
-            buffer[13] = (byte) 0x03;
+            buffer[12] = second; // FREQUENCY END BYTE (0xe8)
+            buffer[13] = first; // FREQUENCY START BYTE (0x03) Little Endian
 
+            buffer[16] = (byte) 0x03;
             buffer[14] = (byte) 0x82;
             buffer[15] = (byte) 0xe8;
-            buffer[16] = (byte) 0x03;
 
             cv_os.write(buffer);
             cv_os.flush();
@@ -415,5 +435,9 @@ public class MainActivity extends AppCompatActivity {
         catch (Exception e) {
             cv_label02.setText("Error in MoveForward(" + e.getMessage() + ")");
         }
+    }
+
+    private static int getRemapValue(int input, int low1, int high1, int low2, int high2) {
+        return low2 + (input- low1) * ((high2 - low2) / (high1 - low1));
     }
 }
