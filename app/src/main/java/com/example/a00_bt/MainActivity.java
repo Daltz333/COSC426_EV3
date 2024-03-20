@@ -136,6 +136,11 @@ public class MainActivity extends AppCompatActivity {
                 ArrayList<Tone> playedTones = new ArrayList<>();
                 int index = 0;
 
+                if (recordedTones.size() == 0) {
+                    isPlaying = false;
+                    return;
+                }
+
                 // grab the current timestamp and subtract from our initial tone timestamp to get an offset
                 long offset = System.currentTimeMillis() - recordedTones.get(0).timestamp;
                 while (isPlaying) {
