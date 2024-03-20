@@ -73,4 +73,15 @@
         app:layout_constraintBottom_toTopOf="@+id/keyboardImg"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <Button
+        android:id="@+id/recordBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:background="@android:color/holo_green_dark"
+        android:text="Start Recording"
+        app:layout_constraintBottom_toTopOf="@+id/keyboardImg"
+        app:layout_constraintEnd_toEndOf="@+id/tuneBtn"
+        app:layout_constraintStart_toStartOf="@+id/soundBtn" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

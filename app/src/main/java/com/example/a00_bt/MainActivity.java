@@ -16,6 +16,8 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
+import android.util.Xml;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
@@ -33,6 +35,8 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
@@ -56,6 +60,11 @@ public class MainActivity extends AppCompatActivity {
     private InputStream cv_is = null;
     private OutputStream cv_os = null;
 
+    private boolean isRecording = false;
+    private boolean isPlaying = false;
+
+    private ArrayList<Tone> recordedTones = new ArrayList<>();
+
     private TextView cv_label01;
     private TextView cv_label02;
     private TextView ev3Status;
@@ -69,9 +78,31 @@ public class MainActivity extends AppCompatActivity {
         Button keyboardImg = findViewById(R.id.keyboardImg);
         Button tuneBtn = findViewById(R.id.tuneBtn);
         Button soundBtn = findViewById(R.id.soundBtn);
+        Button recordBtn = findViewById(R.id.recordBtn);
 
         tuneBtn.setOnClickListener(v -> playTune());
         soundBtn.setOnClickListener(v -> playSound());
+        recordBtn.setOnClickListener(v -> {
+            // we are recording, stop playing tune
+            if (isPlaying) {
+                isPlaying = false;
+            }
+
+            // we are *about* to record
+            if (!isRecording) {
+                recordBtn.setBackgroundColor(Color.RED);
+                recordBtn.setText("STOP RECORDING");
+
+                recordTune();
+            } else {
+                recordBtn.setBackgroundColor(Color.GREEN);
+                recordBtn.setText("START RECORDING");
+
+                recordTune();
+            }
+            // we are stop recording song
+
+        });
 
         keyboardImg.setOnTouchListener((view, event) -> {
             if(event.getAction() == MotionEvent.ACTION_DOWN) {
@@ -94,18 +125,64 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void playSound() {
-        // todo: ev3 code
+        cpf_EV3PlayFile("./ui/GeneralAlarm");
     }
 
     private void playTune() {
-        // todo: ev3 code
+        isPlaying = !isPlaying;
+
+        if (isPlaying) {
+            Thread t = new Thread(() -> {
+                ArrayList<Tone> playedTones = new ArrayList<>();
+                int index = 0;
+
+                // grab the current timestamp and subtract from our initial tone timestamp to get an offset
+                long offset = System.currentTimeMillis() - recordedTones.get(0).timestamp;
+                while (isPlaying) {
+                    try {
+                        if (index == recordedTones.size()) {
+                            Log.println(Log.INFO, "playTune()", "Reached end of song.");
+                            isPlaying = false;
+                            break;
+                        }
+
+                        Tone retTone = recordedTones.get(index);
+                        if (retTone.timestamp < (System.currentTimeMillis() - offset)) {
+                            playNote(retTone.note);
+                            index++;
+                        }
+
+                        Thread.sleep(20);
+                    } catch (InterruptedException ex) {
+                        isPlaying = false;
+                        Log.println(Log.ERROR, "playTune()", "Thread exited early with abort.");
+                    }
+                }
+            });
+            t.setDaemon(true);
+            t.start();
+        }
+
+    }
+
+    private void recordTune() {
+        isRecording = !isRecording;
+
+        if (isRecording) {
+            recordedTones.clear();
+        }
     }
 
     // Notes represented in half-steps above the C the keyboard starts on.
     // int note are in ranges
     private void playNote(int note) {
         // remaps note int to frequency
-        int frequency = getRemapValue(note, WHITE_NOTES[0], WHITE_NOTES[WHITE_NOTES.length - 1], 250, 5000);
+        if (isRecording) {
+            recordedTones.add(new Tone(System.currentTimeMillis(), note));
+        }
+
+        int frequency = getRemapValue(note, WHITE_NOTES[0], WHITE_NOTES[WHITE_NOTES.length - 1], 250, 800);
+
         cpf_EV3PlayTone(frequency);
     }
 
@@ -382,6 +459,59 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void cpf_EV3PlayFile(String filename) {
+
+        try {
+            byte[] soundToPlay = stringToLittleEndianByteArray(filename);
+            byte[] buffer = new byte[13+soundToPlay.length];       // 0x0f command length
+
+            buffer[0] = (byte) ((buffer.length - 2)); // LENGTH OF THE MESSAGE END
+            buffer[1] = 0; // LENGTH OF THE MESSAGE START
+
+            buffer[2] = 0x2A; // MESSAGE COUNTER END (ARBITRARY NO NEED TO CHANGE)
+            buffer[3] = 0x00; // MESSAGE COUNTER START (ARBITARY NO NEED TO CHANGE)
+
+            buffer[4] = (byte) 0x80; // MESSAGE TYPE (0x00 needs reply or 0x80 no reply)
+
+            buffer[5] = 0; // MEMORY NEEDED END
+            buffer[6] = 0; // MEMORY NEEDED START
+
+            buffer[7] = (byte) 0x94; // OPCODE (sound pg 59)
+            buffer[8] = (byte) 0x02; // COMMAND, 0x00 = cancel, 0x01 = tone, 0x02 = play, 0x03 = repeat
+
+
+            buffer[9] = (byte) 0x81; // ENCODING FOR VOLUME (0x81 for non-negatives)
+
+            buffer[10] = (byte) 0x64; // VOLUME
+            buffer[11] = (byte) 0x84; // ENCODING FOR STRING
+
+            int index = 12;
+
+            for (int i = 0; i < soundToPlay.length; i++) {
+                buffer[index] = soundToPlay[i];
+                index++;
+            }
+
+            // GLOBAL MEM AND LOCAL MEM
+            /* https://github.com/ChristophGaukel/ev3-python3/blob/de122f2eb275f3d7e1d8bbfb07be2e9b644770d3/ev3_dc/ev3.py#L1149 */
+
+            StringBuilder builder = new StringBuilder();
+            builder.append("0x|");
+            for(byte b : buffer) {
+                builder.append(Integer.toHexString(b));
+                builder.append("|");
+            }
+
+            cv_label02.setText(builder.toString());
+            Log.println(Log.DEBUG, "SEND_MSG", builder.toString());
+            cv_os.write(buffer);
+            cv_os.flush();
+        }
+        catch (Exception e) {
+            cv_label02.setText("Error in PlayFile(" + e.getMessage() + ")");
+        }
+    }
+
     // 4.2.5 Play a 1Kz tone at level 2 for 1 sec.
     private void cpf_EV3PlayTone(int frequency) {
 
@@ -419,15 +549,16 @@ public class MainActivity extends AppCompatActivity {
 
 
             buffer[9] = (byte) 0x81;
-            buffer[10] = (byte) 0x05; // VOLUME?
+            buffer[10] = (byte) 0x61; // VOLUME
+
 
             buffer[11] = (byte) 0x82;
             buffer[12] = second; // FREQUENCY END BYTE (0xe8)
             buffer[13] = first; // FREQUENCY START BYTE (0x03) Little Endian
 
-            buffer[16] = (byte) 0x03;
             buffer[14] = (byte) 0x82;
-            buffer[15] = (byte) 0xe8;
+            buffer[15] = (byte) 0xB4;
+            buffer[16] = (byte) 0x03;
 
             cv_os.write(buffer);
             cv_os.flush();
@@ -435,6 +566,14 @@ public class MainActivity extends AppCompatActivity {
         catch (Exception e) {
             cv_label02.setText("Error in MoveForward(" + e.getMessage() + ")");
         }
+    }
+
+    private static byte[] stringToLittleEndianByteArray(String str) {
+        byte[] bytes = str.getBytes();
+        ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        buffer.put(bytes);
+        return buffer.array();
     }
 
     private static int getRemapValue(int input, int low1, int high1, int low2, int high2) {

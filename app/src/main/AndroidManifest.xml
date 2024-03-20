@@ -32,7 +32,9 @@ in your app if it targets Android 12 or higher:
         tools:targetApi="31">
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:screenOrientation="landscape"
+            android:configChanges="orientation|keyboardHidden"
+        android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
